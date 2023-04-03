@@ -51,9 +51,9 @@ warnings.filterwarnings("ignore")
 
 # load datasets for two subjects, Math and Portuguese
 mat = pd.read_csv(
-    "/Users/antonisleventakis/Desktop/Github Projects/data/student-mat.csv", sep=';')
+    "pathname of student-mat.csv file", sep=';')
 por = pd.read_csv(
-    "/Users/antonisleventakis/Desktop/Github Projects/data/student-por.csv", sep=';')
+    "pathname of student-por.csv file", sep=';')
 
 mat['subject'] = 'Maths'
 por['subject'] = 'Portuguese'
@@ -91,30 +91,22 @@ df.columns = ['school', 'sex', 'age', 'address', 'family_size', 'parents_status'
 df["final_grade"] = (0.15*df["p1_score"]) + \
     (0.20*df["p2_score"]) + (0.65*df["final_score"])
 
-# Student Group: 1,2,3,4 me vash ton teliko vathmo tous
-# df['Student_Group'] = 0  # dhmiourgia neas sthlhs me times 'na'
-# df.loc[(df.final_grade >= 0) & (df.final_grade < 10), 'Student_Group'] = 4
-# df.loc[(df.final_grade >= 10) & (df.final_grade < 14), 'Student_Group'] = 3
-# df.loc[(df.final_grade >= 14) & (df.final_grade < 17), 'Student_Group'] = 2
-# df.loc[(df.final_grade >= 17) & (df.final_grade <= 20), 'Student_Group'] = 1
+# Student Group based on final grades
 df['Student_Group'] = pd.cut(
     df.final_grade, bins=[-1, 10, 14, 17, 20], labels=[4, 3, 2, 1])
 
 
-# 4. Kanonikopoihsh synexwn metavlitwn
-# """
+# 4. Normalization of continuous variables
+
 cont_cols = ['age', 'mother_education', 'father_education', 'commute_time', 'study_time', 'failures', 'family_quality', 'free_time', 'go_out',
              'weekday_alcohol_usage', 'weekend_alcohol_usage', 'health', 'absences', 'p1_score', 'p2_score', 'final_score', 'Student_Group']
 # for col in cont_cols:
 #    df[col] = (df[col]-min(df[col]))/(max(df[col])-min(df[col]))
-
-# normalize continuous variables
 df[cont_cols] = MinMaxScaler().fit_transform(df[cont_cols])
 
-# """
 
 
-# 5. 'One Hot Encoding' twn katyhgorikwn metavlitwn
+# 5. 'One Hot Encoding' of categorical variables
 
 ohe_cols = ['school', 'sex', 'address', 'family_size', 'parents_status', 'mother_job', 'father_job',
             'reason', 'guardian', 'school_support', 'family_support',
@@ -123,7 +115,7 @@ ohe_cols = ['school', 'sex', 'address', 'family_size', 'parents_status', 'mother
 
 df = pd.get_dummies(df, columns=ohe_cols, drop_first=True)
 
-# 6. Afairesh twn  'Outliers'
+# 6. Outliers removal
 print("Shape before removing outliers: ", df.shape)
 
 
@@ -191,7 +183,7 @@ df = select_features(df, 23)
 print("Shape after feature selection: ", df.shape)
 print()
 
-# 8. Anazhthsh "highly corrrelated" xarakthristikwn:
+# 8. Removal of "highly corrrelated" features
 
 # Compute the correlation matrix
 corr_matrix = df.corr().abs()
@@ -256,40 +248,35 @@ h3_y = h3.predict(Ux)
 print("\nL shape before learning: \n", Lx.shape, Ly.shape)
 print("\nU shape before learning: \n", Ux.shape, Uy.shape)
 
-# Orizoume to synolo S
+# Defining S
 Sx = pd.DataFrame(columns=Lx.columns)
 dropped_rows = []
 
 for j in range(MaxIter):
-    # Dx: o pinakas me tis diafores twn ektimisen twn 3 montelwn knn gia kathe stoixeio tou U
+    # Dx: array with the differences of the estimations of the 3 models
     Dx = np.random.uniform(low=0.0, high=1.0, size=(len(Ux)))
     for i in range(len(Ux)):
         Dx[i] = max(h1_y[i], h2_y[i], h3_y[i]) - min(h1_y[i], h2_y[i], h3_y[i])
 
-    # argpartition: kanei sort ews mia sygkekrimenh timh se enan pinaka
-    # me thn ennnoia oti mexri ekeinh thn timh oles oi prohgoumenes einai mikroteres auths
-
-    # idx: edw apothikeuontai oi times twn thesewn tou Dx
-    # pou antistoixoun stis eggrafes me tis mikroteres diafores
+    # argpartition: Every value below the m[0] is sorted to be less or equal than m[0]
     idx = np.argpartition(Dx, m[0])
-    # print("idx ews m: \n", idx[0:m[0]])
 
-    # Sto S apothikeuontai oi m pio "vevaies" eggrafes tou synolou U
+    # Storing in S the "m" more "confident" rows
     for k in range(0, m[0]):
         Sx.loc[k] = Ux.iloc[idx[k]]
         dropped_rows.append(idx[k])
 
-    # Kathe algorithmos provlepei tis times twn pio "vevaiwn" eggrafwn
+    # Each model predicts the values for the "confident" rows
     S1y = h1.predict(Sx)
     S2y = h2.predict(Sx)
     S3y = h3.predict(Sx)
 
-    # Apothikeuoyme sto dianysma "S_y" ton m.o twn timwn pou proevlepsan oi 3 algorithmoi
+    # We store in S_y the average value for each row
     S_y = np.random.uniform(low=0.0, high=1.0, size=m[0])
     for l in range(m[0]):
         S_y[l] = (S1y[l]+S2y[l]+S3y[l])/3
 
-    # To synolo Sx  afaireitai apo to Ux
+    # Sx rows are removed from Ux
     print("\nUx shape before Sx removal: \n", Ux.shape)
 
     Ux_new = pd.concat([Ux, Sx])
@@ -298,6 +285,7 @@ for j in range(MaxIter):
     print("\nUx shape after S removal: \n", Ux.shape)
 
     print("\nUy shape before Sy removal: \n", Uy.shape)
+    
     # create boolean mask indicating which rows were dropped
     mask = np.zeros(Uy.shape[0], dtype=bool)
     mask[dropped_rows] = True
@@ -305,7 +293,7 @@ for j in range(MaxIter):
     Uy = Uy[~mask]
     print("\nUy shape after Sy removal: \n", Uy.shape)
     dropped_rows = []
-    # To synolo L dieurunetai ame tin prosthiki tou S
+    # S is added to L
     S_y = pd.DataFrame(S_y)
 
     print("\nL shape before S addition: \n", Lx.shape, Ly.shape)
@@ -313,7 +301,8 @@ for j in range(MaxIter):
     Ly = pd.concat([Ly, S_y])
     print("\nL shape after S addition: \n", Lx.shape, Ly.shape)
     print()
-    # Oi algorithmoi epanekpaideuontai sto neo dieurumeno L
+
+    # Each model is retrained on the new L
     h1 = model_1.fit(Lx, Ly)
     h2 = model_2.fit(Lx, Ly)
     h3 = model_3.fit(Lx, Ly)
@@ -327,9 +316,7 @@ print("Final U shape after learning: \n", Ux.shape, Uy.shape)
 
 print()
 
-# After Semi-Supervised Learning - xrisimopoioume RFRegressor sto dieurumeno
-# synolo L wste na auksisoume tin poluplokothta kai parallhla thn
-# isxy tou systhmatos.
+# After Semi-Supervised Learning we are using a Random Forrest Regressor on the final L set
 
 # Split the data into training and test sets
 Lx_train, Lx_test, Ly_train, Ly_test = train_test_split(
@@ -355,8 +342,6 @@ param_grid = {
 }
 
 # Defining the model
-# RFR = RandomForestRegressor(random_state=42, max_depth=10,
-#                            min_samples_leaf=2, min_samples_split=2, n_estimators=200)
 RFR = RandomForestRegressor(random_state=42)
 # Fitting the model to the training set
 RFR.fit(Lx_train, Ly_train)
@@ -378,7 +363,7 @@ print("RMSE from SSR in U: ", np.sqrt(mse))
 print("R2 Score from SSR in U: ", r2_score(Uy, Uy_pred))
 print()
 
-# diorthwnontas tis diastaseis gia kalh ektiposi
+# reshaping for plotting
 Uy = Uy.to_numpy()
 Uy_pred = Uy_pred.reshape(len(Uy_pred), 1)
 Uy = np.squeeze(Uy)
