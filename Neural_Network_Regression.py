@@ -49,9 +49,9 @@ warnings.filterwarnings("ignore")
 
 # load datasets for two subjects, Math and Portuguese
 mat = pd.read_csv(
-    "/Users/antonisleventakis/Desktop/Github Projects/data/student-mat.csv", sep=';')
+    "pathname for the student-mat.csv file", sep=';')
 por = pd.read_csv(
-    "/Users/antonisleventakis/Desktop/Github Projects/data/student-por.csv", sep=';')
+    "pathname for student-por.csv file", sep=';')
 
 mat['subject'] = 'Maths'
 por['subject'] = 'Portuguese'
@@ -79,7 +79,7 @@ df.dropna(inplace=True)
 # Print the number of remaining rows
 print(f"Number of remaining rows: {len(df)}")
 
-# metonomazoume ta xarakrthristika gia na einai pio katanaohta
+# renaming the variables for better understanding
 df.columns = ['school', 'sex', 'age', 'address', 'family_size', 'parents_status', 'mother_education', 'father_education',
               'mother_job', 'father_job', 'reason', 'guardian', 'commute_time', 'study_time', 'failures', 'school_support',
               'family_support', 'paid_classes', 'activities', 'nursery', 'desire_higher_edu', 'internet', 'romantic', 'family_quality',
@@ -90,27 +90,19 @@ df.columns = ['school', 'sex', 'age', 'address', 'family_size', 'parents_status'
 df["final_grade"] = (0.15*df["p1_score"]) + \
     (0.20*df["p2_score"]) + (0.65*df["final_score"])
 
-# Student Group: 1,2,3,4 me vash ton teliko vathmo tous
-# df['Student_Group'] = 0  # dhmiourgia neas sthlhs me times 'na'
-# df.loc[(df.final_grade >= 0) & (df.final_grade < 10), 'Student_Group'] = 4
-# df.loc[(df.final_grade >= 10) & (df.final_grade < 14), 'Student_Group'] = 3
-# df.loc[(df.final_grade >= 14) & (df.final_grade < 17), 'Student_Group'] = 2
-# df.loc[(df.final_grade >= 17) & (df.final_grade <= 20), 'Student_Group'] = 1
+#Student Group based on final grade
 df['Student_Group'] = pd.cut(
     df.final_grade, bins=[-1, 10, 14, 17, 20], labels=[4, 3, 2, 1])
 
 
-# 4. Kanonikopoihsh synexwn metavlitwn
+# 4. Normalization of continuous variables
 
 cont_cols = ['age', 'mother_education', 'father_education', 'commute_time', 'study_time', 'failures', 'family_quality', 'free_time', 'go_out',
              'weekday_alcohol_usage', 'weekend_alcohol_usage', 'health', 'absences', 'p1_score', 'p2_score', 'final_score', 'Student_Group']
-# for col in cont_cols:
-#    df[col] = (df[col]-min(df[col]))/(max(df[col])-min(df[col]))
 
-# normalize continuous variables
 df[cont_cols] = MinMaxScaler().fit_transform(df[cont_cols])
 
-# 5. 'One Hot Encoding' twn katyhgorikwn metavlitwn
+# 5. 'One Hot Encoding' of categorical variables
 
 ohe_cols = ['school', 'sex', 'address', 'family_size', 'parents_status', 'mother_job', 'father_job',
             'reason', 'guardian', 'school_support', 'family_support',
@@ -118,16 +110,8 @@ ohe_cols = ['school', 'sex', 'address', 'family_size', 'parents_status', 'mother
             'desire_higher_edu', 'internet', 'romantic', 'subject']
 
 df = pd.get_dummies(df, columns=ohe_cols, drop_first=True)
-"""
-for column in df.columns:
-    df[column].plot(kind='density')  # density plot
-    plt.title(column)
-    plt.xlabel("Value")
-    plt.ylabel("Density")
-    plt.show()
-"""
 
-# 6. Afairesh twn  'Outliers'
+# 6. 'Outliers' removal
 print("Shape before removing outliers: ", df.shape)
 
 
@@ -195,7 +179,7 @@ df = select_features(df, 23)
 print("Shape after feature selection: ", df.shape)
 print()
 
-# 8. Anazhthsh "highly corrrelated" xarakthristikwn:
+# 8. Removing "highly corrrelated" features:
 # Compute the correlation matrix
 corr_matrix = df.corr().abs()
 
@@ -224,7 +208,7 @@ print(df.shape)
 print(df.columns)
 
 ###############################################################################
-# FF Neural Network for modelling
+# FeedForward Neural Network for modelling
 
 x_train, x_test, y_train, y_test = train_test_split(
     df, y, test_size=0.3, random_state=20)
