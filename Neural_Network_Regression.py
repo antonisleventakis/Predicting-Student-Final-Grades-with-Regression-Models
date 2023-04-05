@@ -1,57 +1,34 @@
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.svm import SVR
-from scipy.stats import skew
-from scipy.stats import zscore, iqr
-from sklearn.preprocessing import RobustScaler
-from scipy.stats import zscore
-from sklearn.feature_selection import SelectKBest, f_regression
-from keras import regularizers
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.linear_model import LinearRegression
-from matplotlib import pyplot as plt
-import pandas as pd
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.wrappers.scikit_learn import KerasRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_absolute_error
-from pandas import read_csv
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import KFold
-from sklearn.pipeline import Pipeline
-import tensorflow as tf
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score
-import math
-from sklearn import neighbors
-from math import *
+import time
 import warnings
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import LabelEncoder
-from scipy.stats import norm
-import scipy.stats as stats
-from tqdm import tqdm
-import itertools
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import accuracy_score
-import statsmodels.api as sm
-from locale import normalize
+from math import *
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import warnings
-warnings.filterwarnings("ignore")
+import tensorflow as tf
+from matplotlib import pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.feature_selection import SelectKBest, f_regression
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import (mean_absolute_error, mean_squared_error, r2_score)
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.preprocessing import (MinMaxScaler)
+from sklearn.svm import SVR
+from sklearn.tree import DecisionTreeRegressor
 
+warnings.filterwarnings("ignore")
+start = time.time()
 # load datasets for two subjects, Math and Portuguese
 mat = pd.read_csv(
-    "pathname for the student-mat.csv file", sep=';')
+    "/Users/antonisleventakis/Desktop/Github Projects/data/student-mat.csv", sep=';')
 por = pd.read_csv(
-    "pathname for student-por.csv file", sep=';')
+    "/Users/antonisleventakis/Desktop/Github Projects/data/student-por.csv", sep=';')
+end = time.time()
+print("\nTime to load data:", end - start, "seconds")
+print()
+# preprocess the data
+start = time.time()
 
 mat['subject'] = 'Maths'
 por['subject'] = 'Portuguese'
@@ -79,7 +56,7 @@ df.dropna(inplace=True)
 # Print the number of remaining rows
 print(f"Number of remaining rows: {len(df)}")
 
-# renaming the variables for better understanding
+# metonomazoume ta xarakrthristika gia na einai pio katanaohta
 df.columns = ['school', 'sex', 'age', 'address', 'family_size', 'parents_status', 'mother_education', 'father_education',
               'mother_job', 'father_job', 'reason', 'guardian', 'commute_time', 'study_time', 'failures', 'school_support',
               'family_support', 'paid_classes', 'activities', 'nursery', 'desire_higher_edu', 'internet', 'romantic', 'family_quality',
@@ -90,19 +67,27 @@ df.columns = ['school', 'sex', 'age', 'address', 'family_size', 'parents_status'
 df["final_grade"] = (0.15*df["p1_score"]) + \
     (0.20*df["p2_score"]) + (0.65*df["final_score"])
 
-#Student Group based on final grade
+# Student Group: 1,2,3,4 me vash ton teliko vathmo tous
+# df['Student_Group'] = 0  # dhmiourgia neas sthlhs me times 'na'
+# df.loc[(df.final_grade >= 0) & (df.final_grade < 10), 'Student_Group'] = 4
+# df.loc[(df.final_grade >= 10) & (df.final_grade < 14), 'Student_Group'] = 3
+# df.loc[(df.final_grade >= 14) & (df.final_grade < 17), 'Student_Group'] = 2
+# df.loc[(df.final_grade >= 17) & (df.final_grade <= 20), 'Student_Group'] = 1
 df['Student_Group'] = pd.cut(
     df.final_grade, bins=[-1, 10, 14, 17, 20], labels=[4, 3, 2, 1])
 
 
-# 4. Normalization of continuous variables
+# 4. Kanonikopoihsh synexwn metavlitwn
 
 cont_cols = ['age', 'mother_education', 'father_education', 'commute_time', 'study_time', 'failures', 'family_quality', 'free_time', 'go_out',
              'weekday_alcohol_usage', 'weekend_alcohol_usage', 'health', 'absences', 'p1_score', 'p2_score', 'final_score', 'Student_Group']
+# for col in cont_cols:
+#    df[col] = (df[col]-min(df[col]))/(max(df[col])-min(df[col]))
 
+# normalize continuous variables
 df[cont_cols] = MinMaxScaler().fit_transform(df[cont_cols])
 
-# 5. 'One Hot Encoding' of categorical variables
+# 5. 'One Hot Encoding' twn katyhgorikwn metavlitwn
 
 ohe_cols = ['school', 'sex', 'address', 'family_size', 'parents_status', 'mother_job', 'father_job',
             'reason', 'guardian', 'school_support', 'family_support',
@@ -111,7 +96,7 @@ ohe_cols = ['school', 'sex', 'address', 'family_size', 'parents_status', 'mother
 
 df = pd.get_dummies(df, columns=ohe_cols, drop_first=True)
 
-# 6. 'Outliers' removal
+# 6. Afairesh twn  'Outliers'
 print("Shape before removing outliers: ", df.shape)
 
 
@@ -150,8 +135,6 @@ print()
 
 print("Shape before feature selection: ", df.shape)
 
-# """
-
 
 def select_features(df, num_features):
     X = df.drop('final_grade', axis=1)
@@ -175,11 +158,11 @@ def select_features(df, num_features):
 
 df = select_features(df, 23)
 
-# """
 print("Shape after feature selection: ", df.shape)
 print()
 
-# 8. Removing "highly corrrelated" features:
+# 8. Anazhthsh "highly corrrelated" xarakthristikwn:
+
 # Compute the correlation matrix
 corr_matrix = df.corr().abs()
 
@@ -205,10 +188,14 @@ y = df['final_grade']
 df.drop(cols_to_drop, axis=1, inplace=True)
 df.drop(['Student_Group'], axis=1, inplace=True)
 print(df.shape)
-print(df.columns)
+# print(df.columns)
 
+end = time.time()
+print("\nTime to preprocess data:", end - start, "seconds")
+print()
 ###############################################################################
-# FeedForward Neural Network for modelling
+# FF Neural Network for modelling
+start = time.time()
 
 x_train, x_test, y_train, y_test = train_test_split(
     df, y, test_size=0.3, random_state=20)
@@ -230,6 +217,10 @@ model.compile(optimizer=optimizer, loss='mean_squared_error')
 history = model.fit(x_train, y_train, validation_data=(
     x_test, y_test), batch_size=9, epochs=50)
 
+end = time.time()
+
+print("\nTime to model data using NN:", end - start, "seconds")
+print()
 # plot the training and validation loss at each epoch
 loss = history.history['loss']
 val_loss = history.history['val_loss']
@@ -256,55 +247,47 @@ predictions = np.squeeze(predictions)
 fdf = pd.DataFrame({'Actual': y_test, 'Predicted': predictions})
 print(fdf)
 
+
 mse_nn = mean_squared_error(y_test, predictions)
+n = len(y_test)
+y_mean = np.mean(y_test)
+variance = sum((predictions - y_mean) ** 2) / (n - 1)
+std = sqrt(variance)
+print("Variance of the NN model:", variance)
+print("Std of the NN model:", std)
 print("MAE from NN: ", mean_absolute_error(y_test, predictions))
 print("MSE from NN: ", mse_nn)
 print("RMSE from NN: ", np.sqrt(mse_nn))
 print("R2 Score from NN: ", r2_score(y_test, predictions))
 print()
 
-
-# Neural network cross-validation
-"""
-
-def create_model():
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Dense(18, activation='relu',
-                              input_shape=(x_train.shape[1],), kernel_regularizer='l1'),
-        tf.keras.layers.Dense(1, activation='linear')
-    ])
-    optimizer = tf.keras.optimizers.RMSprop(learning_rate=0.003)
-    model.compile(optimizer=optimizer, loss='mean_squared_error')
-    return model
-
-
-# Create the KerasRegressor object with the function
-keras_model = KerasRegressor(
-    build_fn=create_model, epochs=60, batch_size=14, verbose=0)
-
-# evaluate the model using cross-validation
-nn_scores = cross_val_score(keras_model, x_train, y_train, cv=5)
-
-# Print the mean and standard deviation of the scores
-print("CV scores from NN:", nn_scores)
-print("Mean CV score from NN:", nn_scores.mean())
-print("Std CV score: from NN:", nn_scores.std())
-print()
-"""
-
-plt.plot(y_test, predictions, 'y*')
+# Assuming y_test and predictions are numpy arrays
+plt.scatter(y_test, predictions)
+plt.plot([0, 20], [0, 20], 'r--')  # plot the y = x line in red dashed line
 plt.xlabel('Actual Grades')
 plt.ylabel('Predicted Grades')
+plt.title('Actual Grades vs. Predicted Grades')
+
 plt.show()
 
 ###############################################################################
 
 # Linear Regression
+start = time.time()
+
 lr_model = LinearRegression()
 lr_model.fit(x_train, y_train)
 y_pred_lr = lr_model.predict(x_test)
+
+end = time.time()
+print("Time to model data using LR:", end - start, "seconds")
+print()
 mae_lr = mean_absolute_error(y_test, y_pred_lr)
 mse_lr = mean_squared_error(y_test, y_pred_lr)
+variance_lr = sum((y_pred_lr - y_mean) ** 2) / (n - 1)
+std_lr = sqrt(variance_lr)
+print("Variance of the LR model:", variance_lr)
+print("Std of the LR model:", std_lr)
 print("MAE from LR: ", mae_lr)
 print("MSE from LR: ", mse_lr)
 print("RMSE from LR: ", np.sqrt(mse_lr))
@@ -319,6 +302,10 @@ dt_model.fit(x_train, y_train)
 y_pred_dt = dt_model.predict(x_test)
 mae_dt = mean_absolute_error(y_test, y_pred_dt)
 mse_dt = mean_squared_error(y_test, y_pred_dt)
+variance_dt = sum((y_pred_dt - y_mean) ** 2) / (n - 1)
+std_dt = sqrt(variance_dt)
+print("Variance of DT model: ", variance_dt)
+print("Std deviation of DT model: ", std_dt)
 print("MAE from DT: ", mae_dt)
 print("MSE from DT: ", mse_dt)
 print("RMSE from DT: ", np.sqrt(mse_dt))
@@ -333,6 +320,10 @@ rf_model.fit(x_train, y_train)
 y_pred_rf = rf_model.predict(x_test)
 mae_rf = mean_absolute_error(y_test, y_pred_rf)
 mse_rf = mean_squared_error(y_test, y_pred_rf)
+variance_rf = sum((y_pred_rf - y_mean) ** 2) / (n - 1)
+std_rf = sqrt(variance_rf)
+print("Variance of RF model: ", variance_rf)
+print("Std deviation of RF model: ", std_rf)
 print("MAE from RF: ", mae_rf)
 print("MSE from RF: ", mse_rf)
 print("RMSE from RF: ", np.sqrt(mse_rf))
@@ -348,6 +339,10 @@ svm_model.fit(x_train, y_train)
 y_pred_svm = svm_model.predict(x_test)
 mae_svm = mean_absolute_error(y_test, y_pred_svm)
 mse_svm = mean_squared_error(y_test, y_pred_svm)
+variance_svm = sum((y_pred_svm - y_mean) ** 2) / (n - 1)
+std_svm = sqrt(variance_svm)
+print("Variance of SVM model: ", variance_svm)
+print("Std deviation of SVM model: ", std_svm)
 print("MAE from SVM: ", mae_svm)
 print("MSE from SVM: ", mse_svm)
 print("RMSE from SVM: ", np.sqrt(mse_svm))
@@ -361,11 +356,46 @@ knn_model.fit(x_train, y_train)
 y_pred_knn = knn_model.predict(x_test)
 mae_knn = mean_absolute_error(y_test, y_pred_knn)
 mse_knn = mean_squared_error(y_test, y_pred_knn)
+variance_knn = sum((y_pred_knn - y_mean) ** 2) / (n - 1)
+std_knn = sqrt(variance_knn)
+print("Variance of KNN model: ", variance_knn)
+print("Std deviation of KNN model: ", std_knn)
 print("MAE from KNN: ", mae_knn)
 print("MSE from KNN: ", mse_knn)
 print("RMSE from KNN: ", np.sqrt(mse_knn))
 print("R2 Score from KNN: ", r2_score(y_test, y_pred_knn))
 print()
+
+# plot linear regression
+plt.plot(y_test, y_pred_lr, 'yo', label='Linear Regression')
+
+# plot decision tree regression
+plt.plot(y_test, y_pred_dt, 'bo', label='Decision Tree Regression')
+
+# plot random forest regression
+plt.plot(y_test, y_pred_rf, 'go', label='Random Forest Regression')
+
+# plot support vector machine regression
+plt.plot(y_test, y_pred_svm, 'ro', label='Support Vector Machine Regression')
+
+# plot k nearest neighbor regression
+plt.plot(y_test, y_pred_knn, 'co', label='K Nearest Neighbor Regression')
+
+# plot neural network regression
+plt.plot(y_test, predictions, 'mo', label='Neural Network Regression')
+
+plt.plot([0, 20], [0, 20], 'k--', label='Ideal Line')
+
+# set labels and title
+plt.xlabel('Actual Grades')
+plt.ylabel('Predicted Grades')
+plt.title('Actual vs Predicted Grades for Different Regression Models')
+
+# set legend
+plt.legend()
+
+# show plot
+plt.show()
 
 # Feature Ranking
 print("Feature Ranking: \n")
