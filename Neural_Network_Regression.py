@@ -21,9 +21,9 @@ warnings.filterwarnings("ignore")
 start = time.time()
 # load datasets for two subjects, Math and Portuguese
 mat = pd.read_csv(
-    "/Users/antonisleventakis/Desktop/Github Projects/data/student-mat.csv", sep=';')
+    "Set this to your pathname for the file: student-mat.csv", sep=';')
 por = pd.read_csv(
-    "/Users/antonisleventakis/Desktop/Github Projects/data/student-por.csv", sep=';')
+    "Set this to your pathname for the file : student-por.csv", sep=';')
 end = time.time()
 print("\nTime to load data:", end - start, "seconds")
 print()
